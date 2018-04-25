@@ -49,7 +49,8 @@ namespace CppMerger
                     topological.Add(val);
             }
 
-            topological.Add(current.Key);
+            if(topological.Contains(current.Key) == false)
+                topological.Add(current.Key);
         }
 
         static List<int> TopologicalSort( List<GraphNode> graph)
@@ -92,10 +93,12 @@ namespace CppMerger
                 using (StreamReader sr = new StreamReader(filename))
                 {
                     string line;
+                    bool isIncluded = false;
                     while ((line = sr.ReadLine()) != null)
                     {
                         if (line.StartsWith("#include") && line.EndsWith(".h\""))
                         {
+                            isIncluded = true;
                             //Console.WriteLine(line);
                             string includedFileName = Regex.Match(line, "\".*\"").Groups[0].Value;
                             includedFileName = includedFileName.Substring(1, includedFileName.Length - 2);
@@ -119,6 +122,10 @@ namespace CppMerger
                                 }
                             }
                         }
+                    }
+                    if(isIncluded == false)
+                    {
+                        numberOrder.Add(new GraphNode(dictFilePath[filename], dictFilePath[filename]));
                     }
                 }
             }
@@ -150,14 +157,29 @@ namespace CppMerger
         // can't resolve cyclic depencies.
         static void Main(string[] args)
         {
-            // TODO : find better way to describe target path and output path
+            string searchPath = "D:\\Works\\BitBucket\\CodeRoyale\\CodeRoyale";
+            string outputFilePath = "D:\\Works\\BitBucket\\CodeRoyale\\TestSingleFile\\CodeRoyale.cpp";
 
-            const string targetDir = "D:\\Works\\BitBucket\\botters_of_the_galaxy\\BOTG";
-            const string targetFileName = "D:\\Works\\BitBucket\\botters_of_the_galaxy\\TestSingleFile\\BOTG.cpp";
-            string searchPath = targetDir;
-            string outputPath = targetFileName;
-            //string searchPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), targetDir);
-            //string outputPath = Path.Combine(System.IO.Directory.GetCurrentDirectory(), targetFileName);
+            // TODO : find better way to describe target path and output path
+            // CppMerger -src "..\\CodeRoyale" -output "..\\TestSingleFile\\CodeRoyale.cpp"
+            if ( args.Length > 0 )
+            {
+                int srcIndex = Array.IndexOf(args, "-src");
+                if( srcIndex >= 0 && srcIndex + 1 < args.Length )
+                {
+                    searchPath = args[srcIndex + 1];
+                }
+
+                int targetIndex = Array.IndexOf(args, "-output");
+                if( targetIndex >= 0 && targetIndex + 1 < args.Length )
+                {
+                    outputFilePath = args[targetIndex + 1];
+                }
+            }
+            else
+            {
+                Console.WriteLine("Usage : CppMerger -src sourcePath -output targetFilePath");
+            }
 
             try
             {
@@ -168,7 +190,7 @@ namespace CppMerger
 
                 var orderedFiles = ReorgranizeMergeOrder(files);
 
-                var outFile = File.Create(outputPath);
+                var outFile = File.Create(outputFilePath);
                 outFile.Close();
                 foreach (string filename in orderedFiles)
                 {
@@ -187,7 +209,7 @@ namespace CppMerger
                             newLines.Add(line);
                         }
                     }
-                    File.AppendAllLines(outputPath, newLines);
+                    File.AppendAllLines(outputFilePath, newLines);
                 }
 
 
